@@ -214,6 +214,7 @@ export class ConfluenceCollatorFactory implements DocumentCollatorFactory {
       });
     });
 
+    const friendlyWhen = new Date(data.version.when).toDateString();
     return [
       {
         title: data.title,
@@ -222,9 +223,9 @@ export class ConfluenceCollatorFactory implements DocumentCollatorFactory {
         spaceKey: data.space.key,
         spaceName: data.space.name,
         ancestors: ancestors,
-        lastModifiedBy: data.version.by.publicName,
+        lastModifiedBy: data.version.by.displayName,
         lastModified: data.version.when,
-        lastModifiedFriendly: data.version.friendlyWhen,
+        lastModifiedFriendly: friendlyWhen,
       },
     ];
   }

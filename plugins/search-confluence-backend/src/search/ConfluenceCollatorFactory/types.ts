@@ -33,10 +33,9 @@ export type ConfluenceDocument = ConfluenceDocumentMetadata & {
   };
   version: {
     by: {
-      publicName: string;
+      displayName: string;
     };
     when: string;
-    friendlyWhen: string;
   };
   space: {
     key: string;
