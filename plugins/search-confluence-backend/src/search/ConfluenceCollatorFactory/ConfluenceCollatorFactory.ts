@@ -24,6 +24,7 @@ type ConfluenceCollatorOptions = {
   auth: {
     username: string;
     password: string;
+    pat: string;
   };
 };
 
@@ -41,7 +42,7 @@ export class ConfluenceCollatorFactory implements DocumentCollatorFactory {
   private parallelismLimit: number;
   private wikiUrl: string;
   private spaces: string[];
-  private auth: { username: string; password: string };
+  private auth: { username: string; password: string; pat: string };
 
   static fromConfig(
     config: Config,
@@ -50,16 +51,33 @@ export class ConfluenceCollatorFactory implements DocumentCollatorFactory {
       parallelismLimit?: number;
     },
   ) {
+    if (
+      config.has('confluence.auth.usePAT') &&
+      config.getBoolean('confluence.auth.usePAT')
+    ) {
+      return new ConfluenceCollatorFactory({
+        logger: options.logger,
+
+        parallelismLimit: options.parallelismLimit || 15,
+
+        wikiUrl: config.getString('confluence.wikiUrl'),
+        spaces: config.getStringArray('confluence.spaces'),
+        auth: {
+          pat: config.getString('confluence.auth.pat'),
+          username: '',
+          password: '',
+        },
+      });
+    }
     return new ConfluenceCollatorFactory({
       logger: options.logger,
 
       parallelismLimit: options.parallelismLimit || 15,
 
       wikiUrl: config.getString('confluence.wikiUrl'),
-      spaces: config.getOptionalStringArray('confluence.spaces')
-        ? config.getStringArray('confluence.spaces')
-        : [],
+      spaces: config.getStringArray('confluence.spaces'),
       auth: {
+        pat: '',
         username: config.getString('confluence.auth.username'),
         password: config.getString('confluence.auth.password'),
       },
@@ -212,16 +230,26 @@ export class ConfluenceCollatorFactory implements DocumentCollatorFactory {
   }
 
   private async get<T = any>(requestUrl: string): Promise<T> {
-    const base64Auth = Buffer.from(
-      `${this.auth.username}:${this.auth.password}`,
-      'utf-8',
-    ).toString('base64');
-    const res = await fetch(requestUrl, {
-      method: 'get',
-      headers: {
-        Authorization: `Basic ${base64Auth}`,
-      },
-    });
+    let res;
+    if (this.auth.pat === '') {
+      const base64Auth = Buffer.from(
+        `${this.auth.username}:${this.auth.password}`,
+        'utf-8',
+      ).toString('base64');
+      res = await fetch(requestUrl, {
+        method: 'get',
+        headers: {
+          Authorization: `Basic ${base64Auth}`,
+        },
+      });
+    } else {
+      res = await fetch(requestUrl, {
+        method: 'get',
+        headers: {
+          Authorization: `Bearer ${this.auth.pat}`,
+        },
+      });
+    }
 
     if (!res.ok) {
       this.logger.warn(
