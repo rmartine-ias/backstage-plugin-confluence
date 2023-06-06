@@ -1,10 +1,18 @@
-import {Config} from '@backstage/config';
-import {DocumentCollatorFactory, IndexableDocument} from '@backstage/plugin-search-common';
+import { Config } from '@backstage/config';
+import {
+  DocumentCollatorFactory,
+  IndexableDocument,
+} from '@backstage/plugin-search-common';
 import fetch from 'node-fetch';
 import pLimit from 'p-limit';
-import {Readable} from 'stream';
-import {Logger} from 'winston';
-import {ConfluenceDocument, ConfluenceDocumentList, IndexableAncestorRef, IndexableConfluenceDocument} from './types';
+import { Readable } from 'stream';
+import { Logger } from 'winston';
+import {
+  ConfluenceDocument,
+  ConfluenceDocumentList,
+  IndexableAncestorRef,
+  IndexableConfluenceDocument,
+} from './types';
 
 type ConfluenceCollatorOptions = {
   logger: Logger;
@@ -18,7 +26,7 @@ type ConfluenceCollatorOptions = {
     password: string;
     pat: string;
   };
-}
+};
 
 export interface UserEntityDocument extends IndexableDocument {
   kind: string;
@@ -34,16 +42,19 @@ export class ConfluenceCollatorFactory implements DocumentCollatorFactory {
   private parallelismLimit: number;
   private wikiUrl: string;
   private spaces: string[];
-  private auth: { username: string, password: string, pat: string };
+  private auth: { username: string; password: string; pat: string };
 
   static fromConfig(
     config: Config,
     options: {
-      logger: Logger,
-      parallelismLimit?: number,
+      logger: Logger;
+      parallelismLimit?: number;
     },
   ) {
-    if (config.has('confluence.auth.usePAT') && config.getBoolean('confluence.auth.usePAT')) {
+    if (
+      config.has('confluence.auth.usePAT') &&
+      config.getBoolean('confluence.auth.usePAT')
+    ) {
       return new ConfluenceCollatorFactory({
         logger: options.logger,
 
@@ -86,26 +97,30 @@ export class ConfluenceCollatorFactory implements DocumentCollatorFactory {
     return Readable.from(this.execute());
   }
 
-  private async* execute(): AsyncGenerator<IndexableConfluenceDocument> {
+  private async *execute(): AsyncGenerator<IndexableConfluenceDocument> {
     const spacesList = await this.getSpaces();
     const documentsList = await this.getDocumentsFromSpaces(spacesList);
 
     const limit = pLimit(this.parallelismLimit);
-    const documentsInfo = documentsList.map(document => limit(async () => {
-      try {
-        return this.getDocumentInfo(document);
-      } catch (err) {
-        this.logger.warn(`error while indexing document "${document}"`, err);
-      }
+    const documentsInfo = documentsList.map(document =>
+      limit(async () => {
+        try {
+          return this.getDocumentInfo(document);
+        } catch (err) {
+          this.logger.warn(`error while indexing document "${document}"`, err);
+        }
 
-      return [];
-    }));
+        return [];
+      }),
+    );
 
-    const safePromises = documentsInfo.map(promise => promise.catch(error => {
-      this.logger.warn(error);
+    const safePromises = documentsInfo.map(promise =>
+      promise.catch(error => {
+        this.logger.warn(error);
 
-      return [];
-    }));
+        return [];
+      }),
+    );
 
     const documents = (await Promise.all(safePromises)).flat();
 
@@ -172,10 +187,14 @@ export class ConfluenceCollatorFactory implements DocumentCollatorFactory {
     return documentsList;
   }
 
-  private async getDocumentInfo(documentUrl: string): Promise<IndexableConfluenceDocument[]> {
+  private async getDocumentInfo(
+    documentUrl: string,
+  ): Promise<IndexableConfluenceDocument[]> {
     this.logger.debug(`fetching document content ${documentUrl}`);
 
-    const data = await this.get<ConfluenceDocument>(`${documentUrl}?expand=body.storage,space,ancestors,version`);
+    const data = await this.get<ConfluenceDocument>(
+      `${documentUrl}?expand=body.storage,space,ancestors,version`,
+    );
     if (!data.status || data.status !== 'current') {
       return [];
     }
@@ -194,23 +213,28 @@ export class ConfluenceCollatorFactory implements DocumentCollatorFactory {
       });
     });
 
-    return [{
-      title: data.title,
-      text: this.stripHtml(data.body.storage.value),
-      location: `${this.wikiUrl}${data._links.webui}`,
-      spaceKey: data.space.key,
-      spaceName: data.space.name,
-      ancestors: ancestors,
-      lastModifiedBy: data.version.by.publicName,
-      lastModified: data.version.when,
-      lastModifiedFriendly: data.version.friendlyWhen
-    }];
+    return [
+      {
+        title: data.title,
+        text: this.stripHtml(data.body.storage.value),
+        location: `${this.wikiUrl}${data._links.webui}`,
+        spaceKey: data.space.key,
+        spaceName: data.space.name,
+        ancestors: ancestors,
+        lastModifiedBy: data.version.by.publicName,
+        lastModified: data.version.when,
+        lastModifiedFriendly: data.version.friendlyWhen,
+      },
+    ];
   }
 
   private async get<T = any>(requestUrl: string): Promise<T> {
     let res;
     if (this.auth.pat === '') {
-      const base64Auth = Buffer.from(`${this.auth.username}:${this.auth.password}`, 'utf-8').toString('base64');
+      const base64Auth = Buffer.from(
+        `${this.auth.username}:${this.auth.password}`,
+        'utf-8',
+      ).toString('base64');
       res = await fetch(requestUrl, {
         method: 'get',
         headers: {
@@ -227,7 +251,12 @@ export class ConfluenceCollatorFactory implements DocumentCollatorFactory {
     }
 
     if (!res.ok) {
-      this.logger.warn('non-ok response from confluence', requestUrl, res.status, await res.text());
+      this.logger.warn(
+        'non-ok response from confluence',
+        requestUrl,
+        res.status,
+        await res.text(),
+      );
 
       throw new Error(`Request failed with ${res.status} ${res.statusText}`);
     }
@@ -236,6 +265,6 @@ export class ConfluenceCollatorFactory implements DocumentCollatorFactory {
   }
 
   private stripHtml(input: string): string {
-    return input.replace(/(<([^>]+)>)/gi, "");
+    return input.replace(/(<([^>]+)>)/gi, '');
   }
 }

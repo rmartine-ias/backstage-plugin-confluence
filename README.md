@@ -4,8 +4,8 @@ This repository contains Confluence-related plugins for [Backstage](https://back
 
 Current plugins:
 
-* [`search-confluence`](./plugins/search-confluence/): frontent part of Confluence integration with Backstage search
-* [`search-confluence-backend`](./plugins/search-confluence-backend/): backend part of Confluence integration with Backstage search
+- [`search-confluence`](./plugins/search-confluence/): frontent part of Confluence integration with Backstage search
+- [`search-confluence-backend`](./plugins/search-confluence-backend/): backend part of Confluence integration with Backstage search
 
 Installation instructions for each plugin can be found in their individual README files.
 
