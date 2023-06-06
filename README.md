@@ -19,6 +19,10 @@ Confluence search plugin:
 
 ![Confluence search result](./plugins/search-confluence/docs/confluence_search_result.png)
 
+## Development
+
+Add git hooks to ensure consistent formatting: `npm run prepare`.
+
 ## License
 
 This library is under the [MIT](LICENSE) license.
