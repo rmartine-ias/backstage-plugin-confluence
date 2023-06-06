@@ -20,12 +20,22 @@ export interface Config {
       /**
        * @visibility backend
        */
-      username: string;
+      username?: string;
 
       /**
        * @visibility secret
        */
-      password: string;
+      password?: string;
+
+      /**
+       * @visibility backend
+       */
+      usePAT?: boolean;
+
+      /**
+       * @visibility secret
+       */
+      pat?: string;
     };
   };
 }
